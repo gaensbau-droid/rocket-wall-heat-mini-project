@@ -91,6 +91,13 @@ def main():
     print("CN   center temp t=0:   ", u_cn[0, nx // 2])
     print("CN   center temp t=end: ", u_cn[-1, nx // 2])
 
+    # quant comparison between ftcs and cn
+    diff_max = np.max(np.abs(u_ftcs - u_cn))
+    diff_rms = np.sqrt(np.mean((u_ftcs - u_cn) **2))
+
+    print(f"Max |FTCS - CN| over doman and time: {diff_max: .6e} K")
+    print(f"RMS |FTCS - CN| over domain and time: {diff_rms:.6e} K")
+
     # comparison plot
     plt.figure(figsize=(8, 5))
     times_to_compare = [0.0, 0.02, 0.05, 0.1]
