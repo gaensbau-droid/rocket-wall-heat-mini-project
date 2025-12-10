@@ -29,3 +29,9 @@ Rocket-wall-heat-mini-project/
    report/
       .gitignore
       README.md
+
+#To run:
+conda create -n rocketheat python=3.10
+conda activate rocketheat
+pip install -r requirements.txt
+python -m src.main
