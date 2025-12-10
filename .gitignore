@@ -1,0 +1,18 @@
+# python cache files
+__pycache__/
+*.pyc
+
+# macOS finder others
+.DS_Store
+
+# images generated
+figures/*.png
+
+# virtual environments
+venv/
+.venv/
+env/
+
+# editor configs
+.vscode/
+.idea/
