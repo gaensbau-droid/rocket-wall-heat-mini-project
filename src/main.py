@@ -1,6 +1,6 @@
 from .config import nx, dx, dt, nt, kappa, alpha, hg, Tg, pulse_is_on
 from .grid import make_space_grid, make_time_grid
-from .schemes import ftcs, heat_wall_ftcs
+from .schemes import ftcs, heat_wall_ftcs, crank_nicolson
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -52,7 +52,7 @@ def main():
     plt.grid(True)
     plt.tight_layout()
     plt.savefig("figures/wall_profiles_ftcs.png", dpi=200)
-    plt.show()
+    # plt.show()
 
     # Plot 2: contour-style plot of T(x, t)
     plt.figure(figsize=(8, 5))
@@ -69,8 +69,8 @@ def main():
 
     
 
-    # Simple FTCS diffusion test (internal consistency)
-    print("\nRunning FTCS internal diffusion test...")
+    # Simple FTCS vs CN diffusion test (internal consistency)
+    print("\nRunning FTCS + CN internal diffusion test...")
 
     u0 = np.ones(nx) * 300.0
     u0[nx // 2] = 1000.0  # bump in the middle
@@ -79,11 +79,45 @@ def main():
     bc_right = 300.0
     n_steps_test = 200
 
-    u = ftcs(u0, nx, dx, dt, n_steps_test, alpha, bc_left, bc_right)
+    # FTCS
+    u_ftcs = ftcs(u0, nx, dx, dt, n_steps_test, alpha, bc_left, bc_right)
 
-    print("FTCS Okay: shape =", u.shape)
-    print("Center temp t=0:   ", u[0, nx // 2])
-    print("Center temp t=end: ", u[-1, nx // 2])
+    # Crank–Nicolson
+    u_cn = crank_nicolson(u0, nx, dx, dt, n_steps_test, alpha, bc_left, bc_right)
+
+    print("FTCS shape:", u_ftcs.shape, "CN shape:", u_cn.shape)
+    print("FTCS center temp t=0:   ", u_ftcs[0, nx // 2])
+    print("FTCS center temp t=end: ", u_ftcs[-1, nx // 2])
+    print("CN   center temp t=0:   ", u_cn[0, nx // 2])
+    print("CN   center temp t=end: ", u_cn[-1, nx // 2])
+
+    # comparison plot
+    plt.figure(figsize=(8, 5))
+    times_to_compare = [0.0, 0.02, 0.05, 0.1]
+
+    for t_target in times_to_compare:
+        idx = np.argmin(np.abs(np.arange(n_steps_test + 1) * dt - t_target))
+        plt.plot(
+            x,
+            u_ftcs[idx, :],
+            linestyle="--",
+            label=f"FTCS t={t_target:.2f}s",
+        )
+        plt.plot(
+            x,
+            u_cn[idx, :],
+            linestyle="-",
+            label=f"CN t={t_target:.2f}s",
+        )
+
+    plt.xlabel("x (m)")
+    plt.ylabel("Temperature (K)")
+    plt.title("FTCS vs Crank–Nicolson (bump diffusion test)")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("figures/ftcs_vs_cn_bump.png", dpi=200)
+    plt.show()
 
 
 if __name__ == "__main__":
