@@ -1,7 +1,8 @@
 from .config import nx, dx, dt, nt, kappa, alpha, hg, Tg, pulse_is_on
 from .grid import make_space_grid, make_time_grid
-from .schemes import ftcs
+from .schemes import ftcs, heat_wall_ftcs
 import numpy as np
+import matplotlib.pyplot as plt
 
 def main():
     print("Environment OK.")
@@ -19,23 +20,71 @@ def main():
     print(f"Pulse at t=0.19s? {pulse_is_on(0.19)}")
     print(f"Pulse at t=0.21s? {pulse_is_on(0.21)}")
 
-    # FTCS Test
-    print("\nRunning FTCS test...")
+    # Physical rocket-wall FTCS simulation
+    print("\nRunning physical rocket-wall FTCS simulation...")
 
-    # initial temperature array: uniform + bump
+    # initial wall temp: 300 K everywhere
+    T0 = np.full(nx, 300.0)
+
+    T_wall = heat_wall_ftcs(
+        T0,
+        nx, dx, dt, nt,
+        alpha, kappa, hg, Tg,
+        pulse_is_on,
+    )
+
+    print("Simulation complete. Field shape:", T_wall.shape)
+    print("Hot-side wall temp at t=0:   ", T_wall[0, 0])
+    print("Hot-side wall temp at t=end: ", T_wall[-1, 0])
+    print("Cold-side wall temp at t=end:", T_wall[-1, -1])
+
+    # plot 1 - temp vs x at several times
+    times_to_plot = [0.0, 0.1, 0.3, 1.0, 1.5]
+
+    plt.figure(figsize=(8, 5))
+    for t_target in times_to_plot:
+        idx = np.argmin(np.abs(t - t_target))
+        plt.plot(x, T_wall[idx, :], label=f"t={t_target:.2f} s")
+        plt.xlabel("x (m)")
+    plt.ylabel("Temperature (K)")
+    plt.title("Wall temperature profiles at selected times (FTCS)")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("figures/wall_profiles_ftcs.png", dpi=200)
+    plt.show()
+
+    # Plot 2: contour-style plot of T(x, t)
+    plt.figure(figsize=(8, 5))
+    # t is length nt+1, x is length nx; T_wall has shape (nt+1, nx)
+    pcm = plt.pcolormesh(x, t, T_wall, shading="auto")
+    plt.xlabel("x (m)")
+    plt.ylabel("t (s)")
+    plt.title("Rocket wall temperature field (FTCS)")
+    cbar = plt.colorbar(pcm)
+    cbar.set_label("Temperature (K)")
+    plt.tight_layout()
+    plt.savefig("figures/wall_contour_ftcs.png", dpi=200)
+    # plt.show()
+
+    
+
+    # Simple FTCS diffusion test (internal consistency)
+    print("\nRunning FTCS internal diffusion test...")
+
     u0 = np.ones(nx) * 300.0
-    u0[nx // 2] = 1000.0
+    u0[nx // 2] = 1000.0  # bump in the middle
 
     bc_left = 300.0
     bc_right = 300.0
-
     n_steps_test = 200
 
     u = ftcs(u0, nx, dx, dt, n_steps_test, alpha, bc_left, bc_right)
 
     print("FTCS Okay: shape =", u.shape)
-    print("Center temp t=0:", u[0, nx // 2])
-    print("Center temp t=end:", u[-1, nx // 2])
+    print("Center temp t=0:   ", u[0, nx // 2])
+    print("Center temp t=end: ", u[-1, nx // 2])
+
 
 if __name__ == "__main__":
     main()
